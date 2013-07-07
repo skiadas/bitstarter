@@ -38,7 +38,7 @@ var assertFileExists = function(infile) {
 };
 
 var cheerioHtmlFile = function(htmlfile) {
-    return cheerio.load(fs.readFileSync(htmlfile));
+    return cheerio.load(htmlfile);
 };
 
 var loadChecks = function(checksfile) {
@@ -66,10 +66,24 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+         .option('-u, --url <url>', 'A url for the html file.')
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+    if (program.url) {
+        // url provided. Need to use rest to get the resource
+        rest.get(program.url).on('complete', function(result) {
+            if (result instanceof Error) {
+               console.log('Error: ' + result.message);
+               process.exit(1); 
+             }
+             var checkJson = checkHtmlFile(result, program.checks);
+             var outJson = JSON.stringify(checkJson, null, 4);
+             console.log(outJson);
+        });
+    } else {
+        var checkJson = checkHtmlFile(fs.readFileSync(program.file), program.checks);
+        var outJson = JSON.stringify(checkJson, null, 4);
+        console.log(outJson);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
